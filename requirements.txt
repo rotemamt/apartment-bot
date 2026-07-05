@@ -1,0 +1,9 @@
+pyyaml
+requests
+beautifulsoup4
+python-dotenv
+nodriver
+telethon
+ruamel.yaml
+fastapi
+uvicorn[standard]

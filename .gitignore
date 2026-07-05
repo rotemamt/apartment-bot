@@ -1,0 +1,15 @@
+venv/
+__pycache__/
+*.pyc
+.env
+*.db
+*.db-journal
+*.db-wal
+*.db-shm
+.claude/settings.local.json
+telethon_session.session
+.yad2_browser_profile/
+bot_state.json
+frontend/node_modules/
+frontend/dist/
+.DS_Store

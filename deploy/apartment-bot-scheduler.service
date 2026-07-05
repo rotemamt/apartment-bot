@@ -1,0 +1,17 @@
+[Unit]
+Description=Apartment Bot - Yad2/Telegram scanner (runs forever, self-scheduling)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=ubuntu
+WorkingDirectory=/home/ubuntu/Apartment-bot
+# nodriver needs a real (headed) Chrome, so Xvfb gives it a virtual display
+# on a server with no physical screen. Requires: sudo apt install xvfb chromium
+ExecStart=/bin/bash scripts/entrypoint_headed.sh /home/ubuntu/Apartment-bot/venv/bin/python scripts/run_scheduler.py
+Restart=on-failure
+RestartSec=30
+
+[Install]
+WantedBy=multi-user.target

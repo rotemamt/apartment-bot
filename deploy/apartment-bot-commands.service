@@ -1,0 +1,15 @@
+[Unit]
+Description=Apartment Bot - Telegram command listener (/pause /resume /status /filters /setprice)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=ubuntu
+WorkingDirectory=/home/ubuntu/Apartment-bot
+ExecStart=/home/ubuntu/Apartment-bot/venv/bin/python -m apartment_bot.telegram.bot_commands
+Restart=on-failure
+RestartSec=15
+
+[Install]
+WantedBy=multi-user.target

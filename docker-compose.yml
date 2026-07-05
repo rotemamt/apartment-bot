@@ -1,0 +1,46 @@
+services:
+  api:
+    build: .
+    command: uvicorn apartment_bot.dashboard.api:app --host 0.0.0.0 --port 8000
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./config.yaml:/app/config.yaml
+      - ./listings.db:/app/listings.db
+    restart: unless-stopped
+
+  scheduler:
+    build: .
+    command: bash scripts/entrypoint_headed.sh python scripts/run_scheduler.py
+    env_file: .env
+    # Chrome's default 64MB /dev/shm is too small and causes silent crashes
+    # under real memory pressure (e.g. with the other 3 services also running).
+    shm_size: "1gb"
+    volumes:
+      - ./config.yaml:/app/config.yaml
+      - ./listings.db:/app/listings.db
+      - ./telethon_session.session:/app/telethon_session.session
+      - yad2_profile:/app/.yad2_browser_profile
+      - ./bot_state.json:/app/bot_state.json
+    restart: unless-stopped
+
+  bot:
+    build: .
+    command: python -m apartment_bot.telegram.bot_commands
+    env_file: .env
+    volumes:
+      - ./config.yaml:/app/config.yaml
+      - ./listings.db:/app/listings.db
+      - ./bot_state.json:/app/bot_state.json
+    restart: unless-stopped
+
+  frontend:
+    build: ./frontend
+    ports:
+      - "3000:80"
+    depends_on:
+      - api
+    restart: unless-stopped
+
+volumes:
+  yad2_profile:

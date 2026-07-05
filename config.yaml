@@ -1,0 +1,39 @@
+# Apartment-bot filter configuration.
+# Edit these values (or later, edit them from the dashboard settings page).
+
+filters:
+  price_min: 8500
+  price_max: 12500
+  cities:
+  - תל אביב
+  rooms_min: 3
+  rooms_max: 6
+  floor_min: 1
+  floor_max:       # null = no upper limit
+  min_sqm: 70
+
+  # Each entry is a required feature; separate spelling variants/synonyms for
+  # that SAME feature with "/" (any one of them counts). Different entries
+  # are all required (AND). Leave empty ([]) to not require anything.
+  required_keywords:
+  - ממ"ד/ממד/מרחב מוגן/ממ"ק/ממק
+  # Example: ["מעלית", "חניה/חנייה", "מרפסת"]
+
+  # If ANY of these appear in the listing text, it is excluded (e.g. roommate listings).
+  excluded_keywords:
+  - שותפים
+  - שותף
+  - שותפה
+sources:
+  yad2:
+    search_url: "https://www.yad2.co.il/realestate/rent?city=5000"
+
+telegram:
+  # bot_token is read from the TELEGRAM_BOT_TOKEN env var (.env file), not stored here.
+  chat_id: "8520724454"
+  # Public channel usernames (no @) to monitor. Remove any you don't want.
+  channels:
+  - "ILRentsTLV"
+  - "jeremy_public"
+
+poll_interval_minutes: 12

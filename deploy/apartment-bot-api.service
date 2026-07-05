@@ -1,0 +1,15 @@
+[Unit]
+Description=Apartment Bot - Dashboard API
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=ubuntu
+WorkingDirectory=/home/ubuntu/Apartment-bot
+ExecStart=/home/ubuntu/Apartment-bot/venv/bin/uvicorn apartment_bot.dashboard.api:app --host 0.0.0.0 --port 8000
+Restart=on-failure
+RestartSec=15
+
+[Install]
+WantedBy=multi-user.target
