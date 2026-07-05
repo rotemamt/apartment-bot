@@ -229,3 +229,87 @@
 .save-message {
   font-size: 0.85rem;
 }
+
+.range-field {
+  border: 1px solid #e2e2e2;
+  border-radius: 10px;
+  padding: 12px 16px;
+  margin-bottom: 4px;
+}
+
+.range-field-header {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.9rem;
+  font-weight: 600;
+  margin-bottom: 8px;
+}
+
+.range-field-values {
+  font-weight: 400;
+  color: #555;
+}
+
+.range-field-sliders {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.range-field-sliders input[type="range"] {
+  width: 100%;
+}
+
+.range-field-toggle {
+  display: flex !important;
+  flex-direction: row !important;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.8rem;
+  color: #666;
+  margin-top: 6px;
+}
+
+.settings-section-label {
+  font-size: 0.85rem;
+  font-weight: 600;
+  margin-bottom: 6px;
+}
+
+.neighborhood-picker {
+  border: 1px solid #e2e2e2;
+  border-radius: 10px;
+  padding: 12px 16px;
+  max-height: 220px;
+  overflow-y: auto;
+}
+
+.neighborhood-city-name {
+  font-weight: 600;
+  font-size: 0.85rem;
+  margin-bottom: 6px;
+}
+
+.neighborhood-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+  gap: 4px;
+}
+
+.neighborhood-item {
+  display: flex !important;
+  flex-direction: row !important;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.82rem;
+}
+
+.neighborhood-clear {
+  margin-top: 8px;
+  font-size: 0.8rem;
+  background: none;
+  border: 1px solid #ccc;
+  border-radius: 6px;
+  padding: 4px 10px;
+  cursor: pointer;
+}

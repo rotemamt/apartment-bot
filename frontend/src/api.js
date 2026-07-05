@@ -39,6 +39,10 @@ export function getConfig() {
   return request("/api/config");
 }
 
+export function getNeighborhoods() {
+  return request("/api/neighborhoods");
+}
+
 export function updateConfig(filters) {
   return request("/api/config", {
     method: "PUT",

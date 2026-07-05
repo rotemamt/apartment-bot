@@ -57,6 +57,10 @@ def match_listing(listing: Listing, config: dict) -> MatchResult:
     if cities and not any(_normalize(city) in blob for city in cities):
         return MatchResult(False, [], "no city match")
 
+    neighborhoods = f.get("neighborhoods") or []
+    if neighborhoods and not any(_normalize(n) in blob for n in neighborhoods):
+        return MatchResult(False, [], "no neighborhood match")
+
     rooms_min = f.get("rooms_min")
     rooms_max = f.get("rooms_max")
     if rooms_min is not None and (listing.rooms is None or listing.rooms < rooms_min):

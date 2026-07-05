@@ -6,6 +6,7 @@ filters:
   price_max: 12500
   cities:
   - תל אביב
+  neighborhoods: []
   rooms_min: 3
   rooms_max: 6
   floor_min: 1
@@ -17,9 +18,6 @@ filters:
   # are all required (AND). Leave empty ([]) to not require anything.
   required_keywords:
   - ממ"ד/ממד/מרחב מוגן/ממ"ק/ממק
-  # Example: ["מעלית", "חניה/חנייה", "מרפסת"]
-
-  # If ANY of these appear in the listing text, it is excluded (e.g. roommate listings).
   excluded_keywords:
   - שותפים
   - שותף

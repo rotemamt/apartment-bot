@@ -17,6 +17,21 @@ ROOT = Path(__file__).resolve().parent.parent.parent
 CONFIG_PATH = ROOT / "config.yaml"
 DB_PATH = ROOT / "listings.db"
 
+# Tel Aviv-Yafo neighborhood names as they actually appear in Yad2 listing
+# addresses (observed from real scraped data) - used to power the
+# neighborhood picker in the settings UI/Mini App.
+TEL_AVIV_NEIGHBORHOODS = [
+    "לב תל אביב", "הצפון הישן - צפון", "הצפון הישן - דרום",
+    "הצפון החדש - כיכר המדינה", "הצפון החדש - דרום", "פלורנטין",
+    "נווה צדק", "כרם התימנים", "שפירא", "קרית שלום", "יד אליהו",
+    "רמת אביב ג'", "רמת אביב החדשה", "נאות אפקה ב'", "אפקה", "בבלי",
+    "נווה אביבים", "תל ברוך צפון", "גבעת הרצל", "אזור המלאכה יפו",
+    "עג'מי", "צפון יפו", "המושבה האמריקאית-גרמנית", "נווה שאנן",
+    "התקוה", "בית יעקב", "נווה צה\"ל", "גני שרונה", "קרית הממשלה",
+    "פארק צמרת", "צמרות איילון", "מונטיפיורי", "הרכבת", "נחלת יצחק",
+    "ביצרון ורמת ישראל", "המשתלה", "ניר אביב",
+]
+
 app = FastAPI(title="Apartment Bot API")
 
 app.add_middleware(
@@ -53,6 +68,7 @@ class FiltersUpdate(BaseModel):
     floor_max: Optional[int] = None
     min_sqm: Optional[int] = None
     cities: Optional[list[str]] = None
+    neighborhoods: Optional[list[str]] = None
     required_keywords: Optional[list[str]] = None
     excluded_keywords: Optional[list[str]] = None
 
@@ -96,6 +112,11 @@ def api_stats():
     }
 
 
+@app.get("/api/neighborhoods")
+def api_neighborhoods():
+    return {"תל אביב": TEL_AVIV_NEIGHBORHOODS}
+
+
 @app.get("/api/config")
 def api_get_config():
     return load_config(str(CONFIG_PATH))
@@ -103,7 +124,10 @@ def api_get_config():
 
 @app.put("/api/config")
 def api_update_config(body: FiltersUpdate):
-    updates = {k: v for k, v in body.model_dump().items() if v is not None}
+    # exclude_unset (not "is not None") so a field explicitly sent as null
+    # (e.g. "doesn't matter" clearing floor_max) is distinguishable from a
+    # field simply omitted from a partial update.
+    updates = body.model_dump(exclude_unset=True)
     if updates:
         update_filters(str(CONFIG_PATH), updates)
     return load_config(str(CONFIG_PATH))
