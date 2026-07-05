@@ -37,7 +37,11 @@ services:
   frontend:
     build: ./frontend
     ports:
-      - "3000:80"
+      - "80:80"
+      - "443:443"
+    volumes:
+      - /etc/letsencrypt:/etc/letsencrypt:ro
+      - ./certbot-webroot:/var/www/certbot
     depends_on:
       - api
     restart: unless-stopped
