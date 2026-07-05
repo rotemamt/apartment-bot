@@ -1,16 +1,40 @@
 import { useEffect, useState } from "react";
-import { getStats } from "./api";
+import { getStats, getConfig } from "./api";
 import ListingsView from "./components/ListingsView";
 import SettingsView from "./components/SettingsView";
 import "./App.css";
 
+const tg = window.Telegram?.WebApp;
+const runningInTelegram = Boolean(tg?.initData);
+
 export default function App() {
-  const [tab, setTab] = useState("listings");
+  const [tab, setTab] = useState(runningInTelegram ? "settings" : "listings");
   const [stats, setStats] = useState(null);
+  const [authorized, setAuthorized] = useState(!runningInTelegram);
+
+  useEffect(() => {
+    if (tg) {
+      tg.ready();
+      tg.expand();
+    }
+    if (runningInTelegram) {
+      getConfig()
+        .then((config) => {
+          const ownerId = String(config.telegram?.chat_id || "");
+          const userId = String(tg.initDataUnsafe?.user?.id || "");
+          setAuthorized(ownerId !== "" && ownerId === userId);
+        })
+        .catch(() => setAuthorized(false));
+    }
+  }, []);
 
   useEffect(() => {
     getStats().then(setStats).catch(() => {});
   }, [tab]);
+
+  if (!authorized) {
+    return <div className="app"><p>Not authorized.</p></div>;
+  }
 
   return (
     <div className="app">
