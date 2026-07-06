@@ -41,7 +41,7 @@ export default function RangeField({ label, unit, min, max, step = 1, valueMin, 
       </div>
       <label className="range-field-toggle">
         <input type="checkbox" checked={disabled} onChange={toggleImportant} />
-        Doesn't matter to me
+        לא משנה לי
       </label>
     </div>
   );

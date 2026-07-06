@@ -1,4 +1,3 @@
-import json
 import os
 import sys
 import time
@@ -15,9 +14,10 @@ from apartment_bot.telegram import state
 from apartment_bot.telegram.notifier import (
     answer_callback_query,
     edit_message,
-    send_message_with_buttons,
+    send_message_with_web_app_button,
     send_text,
 )
+from apartment_bot.telegram.onboarding import format_filters
 
 ROOT = Path(__file__).resolve().parent.parent.parent
 CONFIG_PATH = ROOT / "config.yaml"
@@ -26,6 +26,7 @@ DB_PATH = ROOT / "listings.db"
 load_dotenv(ROOT / ".env")
 BOT_TOKEN = os.environ["TELEGRAM_BOT_TOKEN"]
 API = f"https://api.telegram.org/bot{BOT_TOKEN}"
+MINI_APP_URL = os.environ.get("MINI_APP_URL", "https://apartmentbot.duckdns.org")
 
 HELP_TEXT = (
     "פקודות זמינות:\n"
@@ -35,17 +36,8 @@ HELP_TEXT = (
     "/filters - הצגת הגדרות הסינון הנוכחיות\n"
     "/setprice מינימום מקסימום - עדכון טווח מחיר (למשל: /setprice 4000 8000)"
 )
-
-# Onboarding wizard: one question per step, driven by users.onboarding_step.
-ONBOARDING_STEPS = ["city", "price", "rooms", "keywords"]
-SKIP_WORDS = {"skip", "דלג", "-"}
-STEP_PROMPTS = {
-    "city": "באיזו עיר תרצה לחפש דירה? (למשל: תל אביב). אפשר לכתוב 'דלג' כדי לא להגביל.",
-    "price": "מה טווח המחיר הרצוי בש\"ח? (למשל: 4000 8000). אפשר לכתוב 'דלג'.",
-    "rooms": "כמה חדרים? טווח מינימום-מקסימום (למשל: 2 4). אפשר לכתוב 'דלג'.",
-    "keywords": "מילות מפתח נדרשות, מופרדות בפסיק (למשל: ממ\"ד). אפשר לכתוב 'דלג'.",
-}
-WELCOME_TEXT = "ברוכים הבאים! בוא נגדיר את הסינון שלך לפני שהבקשה תישלח לאישור.\n\n"
+START_TEXT = "ברוכים הבאים! לחצו כדי להגדיר את הסינון שלכם."
+PENDING_TEXT = "הבקשה שלך עדיין ממתינה לאישור מנהל."
 
 
 def get_updates(offset: int | None, timeout: int = 25) -> list:
@@ -55,89 +47,6 @@ def get_updates(offset: int | None, timeout: int = 25) -> list:
     resp = requests.get(f"{API}/getUpdates", params=params, timeout=timeout + 10)
     resp.raise_for_status()
     return resp.json()["result"]
-
-
-def _fmt(value) -> str:
-    return "ללא הגבלה" if value is None else str(value)
-
-
-def _fmt_filters(f: dict) -> str:
-    lines = [
-        f"מחיר: {_fmt(f.get('price_min'))}-{_fmt(f.get('price_max'))} ₪",
-        f"חדרים: {_fmt(f.get('rooms_min'))}-{_fmt(f.get('rooms_max'))}",
-        f"קומה: {_fmt(f.get('floor_min'))}-{_fmt(f.get('floor_max'))}",
-        f"מ״ר מינ׳: {_fmt(f.get('min_sqm'))}",
-        f"ערים: {', '.join(f.get('cities') or [])}",
-        f"מילות מפתח נדרשות (הכל): {', '.join(f.get('required_keywords') or []) or '-'}",
-        f"מילות מפתח לשלילה (כל אחת מספיקה): {', '.join(f.get('excluded_keywords') or []) or '-'}",
-    ]
-    return "\n".join(lines)
-
-
-def _parse_onboarding_answer(step: str, text: str) -> dict | None:
-    """Returns a filters-dict patch, {} for an explicit skip, or None if the
-    input couldn't be parsed (caller should re-prompt)."""
-    text = text.strip()
-    if text.lower() in SKIP_WORDS:
-        return {}
-
-    if step == "city":
-        cities = [c.strip() for c in text.split(",") if c.strip()]
-        return {"cities": cities} if cities else None
-
-    if step == "price":
-        parts = text.split()
-        if len(parts) == 2 and all(p.isdigit() for p in parts):
-            return {"price_min": int(parts[0]), "price_max": int(parts[1])}
-        return None
-
-    if step == "rooms":
-        parts = text.split()
-        try:
-            return {"rooms_min": float(parts[0]), "rooms_max": float(parts[1])}
-        except (ValueError, IndexError):
-            return None
-
-    if step == "keywords":
-        kws = [k.strip() for k in text.split(",") if k.strip()]
-        return {"required_keywords": kws} if kws else None
-
-    return {}
-
-
-def _handle_onboarding_step(conn, user, text: str) -> None:
-    step = user["onboarding_step"]
-    chat_id = user["telegram_chat_id"]
-    parsed = _parse_onboarding_answer(step, text)
-    if parsed is None:
-        send_text(BOT_TOKEN, chat_id, "לא הבנתי, נסה שוב.\n\n" + STEP_PROMPTS[step])
-        return
-
-    idx = ONBOARDING_STEPS.index(step)
-    next_step = ONBOARDING_STEPS[idx + 1] if idx + 1 < len(ONBOARDING_STEPS) else None
-    db.update_user_onboarding_step(conn, user["id"], next_step, filters_patch=parsed)
-
-    if next_step:
-        send_text(BOT_TOKEN, chat_id, STEP_PROMPTS[next_step])
-    else:
-        db.complete_onboarding(conn, user["id"])
-        send_text(BOT_TOKEN, chat_id, "תודה! הבקשה שלך נשלחה למנהל לאישור.")
-        _notify_admins_of_pending_request(conn, user["id"])
-
-
-def _notify_admins_of_pending_request(conn, user_id: int) -> None:
-    user = db.get_user_by_id(conn, user_id)
-    filters = json.loads(user["filters"])
-    text = (
-        f"בקשת הצטרפות חדשה מ-{user['telegram_username'] or user['telegram_chat_id']}"
-        f" (chat_id {user['telegram_chat_id']}):\n\n{_fmt_filters(filters)}"
-    )
-    buttons = [[
-        {"text": "✅ אשר", "callback_data": f"approve:{user_id}"},
-        {"text": "❌ דחה", "callback_data": f"deny:{user_id}"},
-    ]]
-    for admin in db.get_admins(conn):
-        send_message_with_buttons(BOT_TOKEN, admin["telegram_chat_id"], text, buttons)
 
 
 def _handle_command(conn, user, cmd: str, parts: list[str]) -> None:
@@ -153,7 +62,7 @@ def _handle_command(conn, user, cmd: str, parts: list[str]) -> None:
         paused = "כן ⏸️" if user["paused"] else "לא ▶️"
         send_text(BOT_TOKEN, chat_id, f"מושהה: {paused}\nהתאמות חדשות היום: {count_today}")
     elif cmd == "/filters":
-        send_text(BOT_TOKEN, chat_id, _fmt_filters(db.get_user_filters(conn, user["id"])))
+        send_text(BOT_TOKEN, chat_id, format_filters(db.get_user_filters(conn, user["id"])))
     elif cmd == "/setprice":
         if len(parts) != 3 or not all(p.isdigit() for p in parts[1:]):
             send_text(BOT_TOKEN, chat_id, "שימוש: /setprice 4000 8000")
@@ -175,15 +84,18 @@ def handle_message(chat_id, text: str, conn) -> None:
 
     if user is None:
         if cmd in ("/start", "/help"):
-            db.create_user(conn, chat_id, status="onboarding", onboarding_step=ONBOARDING_STEPS[0])
-            send_text(BOT_TOKEN, chat_id, WELCOME_TEXT + STEP_PROMPTS[ONBOARDING_STEPS[0]])
+            db.create_user(conn, chat_id, status="onboarding")
+            send_message_with_web_app_button(BOT_TOKEN, chat_id, START_TEXT, "בוא נתחיל 🐾", MINI_APP_URL)
         return
 
-    if user["status"] == "onboarding":
-        _handle_onboarding_step(conn, user, text)
-        return
-    if user["status"] == "pending_approval":
-        send_text(BOT_TOKEN, chat_id, "הבקשה שלך עדיין ממתינה לאישור מנהל.")
+    # All filter/city/etc. collection now happens in the Mini App wizard
+    # (POST /api/onboarding), not via chat - a lingering "onboarding" status
+    # here just means they haven't finished/submitted the wizard yet.
+    if user["status"] in ("onboarding", "pending_approval"):
+        if cmd in ("/start", "/help"):
+            send_message_with_web_app_button(BOT_TOKEN, chat_id, START_TEXT, "המשך הרשמה 🐾", MINI_APP_URL)
+        elif user["status"] == "pending_approval":
+            send_text(BOT_TOKEN, chat_id, PENDING_TEXT)
         return
     if user["status"] == "blocked":
         return  # silently ignore

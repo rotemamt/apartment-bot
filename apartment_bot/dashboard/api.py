@@ -15,28 +15,15 @@ from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 
 from apartment_bot.storage import db
+from apartment_bot.telegram.onboarding import notify_admins_of_pending_request
 
 ROOT = Path(__file__).resolve().parent.parent.parent
 CONFIG_PATH = ROOT / "config.yaml"
 DB_PATH = ROOT / "listings.db"
+NEIGHBORHOODS_GEOJSON_PATH = Path(__file__).resolve().parent / "data" / "neighborhoods.geojson"
 
 load_dotenv(ROOT / ".env")
 BOT_TOKEN = os.environ["TELEGRAM_BOT_TOKEN"]
-
-# Tel Aviv-Yafo neighborhood names as they actually appear in Yad2 listing
-# addresses (observed from real scraped data) - used to power the
-# neighborhood picker in the settings UI/Mini App.
-TEL_AVIV_NEIGHBORHOODS = [
-    "לב תל אביב", "הצפון הישן - צפון", "הצפון הישן - דרום",
-    "הצפון החדש - כיכר המדינה", "הצפון החדש - דרום", "פלורנטין",
-    "נווה צדק", "כרם התימנים", "שפירא", "קרית שלום", "יד אליהו",
-    "רמת אביב ג'", "רמת אביב החדשה", "נאות אפקה ב'", "אפקה", "בבלי",
-    "נווה אביבים", "תל ברוך צפון", "גבעת הרצל", "אזור המלאכה יפו",
-    "עג'מי", "צפון יפו", "המושבה האמריקאית-גרמנית", "נווה שאנן",
-    "התקוה", "בית יעקב", "נווה צה\"ל", "גני שרונה", "קרית הממשלה",
-    "פארק צמרת", "צמרות איילון", "מונטיפיורי", "הרכבת", "נחלת יצחק",
-    "ביצרון ורמת ישראל", "המשתלה", "ניר אביב",
-]
 
 app = FastAPI(title="Apartment Bot API")
 
@@ -71,13 +58,22 @@ def _validate_init_data(init_data: str) -> dict:
     return parsed
 
 
-def get_current_user(x_telegram_init_data: str = Header(...)):
-    parsed = _validate_init_data(x_telegram_init_data)
+def _parse_telegram_user(parsed: dict) -> dict:
     try:
-        tg_user = json.loads(parsed["user"])
+        return json.loads(parsed["user"])
     except (KeyError, ValueError):
         raise HTTPException(status_code=401, detail="missing user in initData")
 
+
+def get_telegram_identity(x_telegram_init_data: str = Header(...)) -> dict:
+    """Validates the initData signature only - no approval-status check.
+    Used by /api/me and /api/onboarding, which must be reachable by users
+    who aren't approved yet (that's the whole point of onboarding)."""
+    return _parse_telegram_user(_validate_init_data(x_telegram_init_data))
+
+
+def get_current_user(x_telegram_init_data: str = Header(...)):
+    tg_user = _parse_telegram_user(_validate_init_data(x_telegram_init_data))
     conn = db.connect(str(DB_PATH))
     user = db.get_user_by_chat_id(conn, str(tg_user["id"]))
     if user is None or user["status"] != "approved":
@@ -156,7 +152,41 @@ def api_stats(user=Depends(get_current_user)):
 
 @app.get("/api/neighborhoods")
 def api_neighborhoods():
-    return {"תל אביב": TEL_AVIV_NEIGHBORHOODS}
+    """GeoJSON FeatureCollection of neighborhood boundaries (Tel Aviv-Yafo,
+    Ramat Gan, Givatayim) for the interactive map picker. See
+    scripts/build_neighborhoods_geojson.py for how this file is generated."""
+    return json.loads(NEIGHBORHOODS_GEOJSON_PATH.read_text(encoding="utf-8"))
+
+
+@app.get("/api/me")
+def api_me(tg_user: dict = Depends(get_telegram_identity)):
+    conn = db.connect(str(DB_PATH))
+    user = db.get_user_by_chat_id(conn, str(tg_user["id"]))
+    if user is None:
+        return {"status": "new"}
+    return {"status": user["status"], "filters": db.get_user_filters(conn, user["id"])}
+
+
+@app.post("/api/onboarding")
+def api_onboarding(body: FiltersUpdate, tg_user: dict = Depends(get_telegram_identity)):
+    conn = db.connect(str(DB_PATH))
+    chat_id = str(tg_user["id"])
+    username = tg_user.get("username")
+    updates = body.model_dump(exclude_unset=True)
+
+    user = db.get_user_by_chat_id(conn, chat_id)
+    if user is None:
+        user_id = db.create_user(conn, chat_id, telegram_username=username, status="pending_approval", filters=updates)
+        notify_admins_of_pending_request(BOT_TOKEN, conn, user_id)
+    elif user["status"] in ("onboarding", "pending_approval"):
+        was_pending = user["status"] == "pending_approval"
+        db.submit_onboarding(conn, user["id"], updates)
+        if not was_pending:
+            notify_admins_of_pending_request(BOT_TOKEN, conn, user["id"])
+    else:
+        raise HTTPException(status_code=409, detail="already approved or blocked - use PUT /api/filters instead")
+
+    return api_me(tg_user)
 
 
 @app.get("/api/filters")

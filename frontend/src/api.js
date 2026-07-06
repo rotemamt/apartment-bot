@@ -55,3 +55,14 @@ export function updateFilters(filters) {
     body: JSON.stringify(filters),
   });
 }
+
+export function getMe() {
+  return request("/api/me");
+}
+
+export function postOnboarding(filters) {
+  return request("/api/onboarding", {
+    method: "POST",
+    body: JSON.stringify(filters),
+  });
+}

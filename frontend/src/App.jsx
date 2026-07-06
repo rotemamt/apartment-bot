@@ -1,17 +1,32 @@
-import { useEffect, useState } from "react";
-import { getStats } from "./api";
+import { useEffect, useRef, useState } from "react";
+import { getMe, getStats } from "./api";
 import ListingsView from "./components/ListingsView";
 import SettingsView from "./components/SettingsView";
+import OnboardingWizard from "./components/wizard/OnboardingWizard";
+import PendingApprovalScreen from "./components/PendingApprovalScreen";
 import "./App.css";
 
 const tg = window.Telegram?.WebApp;
 const runningInTelegram = Boolean(tg?.initData);
+const PENDING_POLL_MS = 10000;
 
-// "checking" | "authorized" | "pending" | "denied"
+// "checking" | "new" | "onboarding" | "pending_approval" | "approved" | "blocked" | "denied"
 export default function App() {
   const [tab, setTab] = useState("settings");
   const [stats, setStats] = useState(null);
-  const [authState, setAuthState] = useState(runningInTelegram ? "checking" : "denied");
+  const [meState, setMeState] = useState(runningInTelegram ? "checking" : "denied");
+  const [initialFilters, setInitialFilters] = useState(null);
+  const pollRef = useRef(null);
+
+  function refreshMe() {
+    return getMe()
+      .then((data) => {
+        setMeState(data.status);
+        setInitialFilters(data.filters ?? null);
+        return data;
+      })
+      .catch(() => setMeState("denied"));
+  }
 
   useEffect(() => {
     if (tg) {
@@ -19,30 +34,36 @@ export default function App() {
       tg.expand();
     }
     if (!runningInTelegram) return;
-    getStats()
-      .then((s) => {
-        setStats(s);
-        setAuthState("authorized");
-      })
-      .catch((err) => {
-        setAuthState(err.status === 403 ? "pending" : "denied");
-      });
+    refreshMe();
   }, []);
 
   useEffect(() => {
-    if (authState === "authorized") {
+    if (meState === "pending_approval") {
+      pollRef.current = setInterval(refreshMe, PENDING_POLL_MS);
+      return () => clearInterval(pollRef.current);
+    }
+  }, [meState]);
+
+  useEffect(() => {
+    if (meState === "approved") {
       getStats().then(setStats).catch(() => {});
     }
-  }, [tab, authState]);
+  }, [tab, meState]);
 
-  if (authState === "checking") {
-    return <div className="app"><p>Loading...</p></div>;
+  if (meState === "checking") {
+    return <div className="app app-center"><p>טוען...</p></div>;
   }
-  if (authState === "pending") {
-    return <div className="app"><p>הבקשה שלך ממתינה לאישור מנהל. שלח /start לבוט אם עוד לא עשית זאת.</p></div>;
+  if (meState === "denied") {
+    return <div className="app app-center"><p>יש לפתוח את האפליקציה דרך הבוט בטלגרם.</p></div>;
   }
-  if (authState === "denied") {
-    return <div className="app"><p>Not authorized. Open this from the Telegram bot.</p></div>;
+  if (meState === "new" || meState === "onboarding") {
+    return <OnboardingWizard initialFilters={initialFilters} onSubmitted={refreshMe} />;
+  }
+  if (meState === "pending_approval") {
+    return <PendingApprovalScreen />;
+  }
+  if (meState === "blocked") {
+    return <div className="app app-center"><p>הבקשה שלך נדחתה על ידי המנהל.</p></div>;
   }
 
   return (

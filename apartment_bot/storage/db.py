@@ -218,35 +218,6 @@ def get_admins(conn: sqlite3.Connection) -> list[sqlite3.Row]:
     return conn.execute("SELECT * FROM users WHERE is_admin = 1").fetchall()
 
 
-def update_user_onboarding_step(
-    conn: sqlite3.Connection, user_id: int, onboarding_step: str | None, filters_patch: dict | None = None
-) -> None:
-    now = datetime.now(timezone.utc).isoformat()
-    if filters_patch:
-        row = conn.execute("SELECT filters FROM users WHERE id = ?", (user_id,)).fetchone()
-        current = json.loads(row["filters"]) if row and row["filters"] else {}
-        current.update(filters_patch)
-        conn.execute(
-            "UPDATE users SET onboarding_step=?, filters=?, updated_at=? WHERE id=?",
-            (onboarding_step, json.dumps(current), now, user_id),
-        )
-    else:
-        conn.execute(
-            "UPDATE users SET onboarding_step=?, updated_at=? WHERE id=?",
-            (onboarding_step, now, user_id),
-        )
-    conn.commit()
-
-
-def complete_onboarding(conn: sqlite3.Connection, user_id: int) -> None:
-    now = datetime.now(timezone.utc).isoformat()
-    conn.execute(
-        "UPDATE users SET status='pending_approval', onboarding_step=NULL, updated_at=? WHERE id=?",
-        (now, user_id),
-    )
-    conn.commit()
-
-
 def set_user_status(conn: sqlite3.Connection, user_id: int, status: str) -> None:
     if status not in ("onboarding", "pending_approval", "approved", "blocked"):
         raise ValueError(f"invalid status: {status}")
@@ -285,6 +256,19 @@ def update_user_filters(conn: sqlite3.Connection, user_id: int, updates: dict) -
     conn.execute(
         "UPDATE users SET filters=?, updated_at=? WHERE id=?",
         (json.dumps(current), now, user_id),
+    )
+    conn.commit()
+
+
+def submit_onboarding(conn: sqlite3.Connection, user_id: int, updates: dict) -> None:
+    """Merge the Mini App wizard's answers into a user's filters and mark
+    them ready for admin review. Reuses update_user_filters' key validation."""
+    if updates:
+        update_user_filters(conn, user_id, updates)
+    now = datetime.now(timezone.utc).isoformat()
+    conn.execute(
+        "UPDATE users SET status='pending_approval', updated_at=? WHERE id=?",
+        (now, user_id),
     )
     conn.commit()
 

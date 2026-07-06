@@ -68,6 +68,21 @@ def send_message_with_buttons(bot_token: str, chat_id: str, text: str, buttons: 
     return resp.json()["result"]["message_id"]
 
 
+def send_message_with_web_app_button(bot_token: str, chat_id: str, text: str, button_text: str, url: str) -> None:
+    """Send a message with a single button that opens the Mini App directly
+    (Telegram's `web_app` inline button type, distinct from a plain URL
+    button - it opens inside Telegram rather than an external browser)."""
+    api_url = API_BASE.format(token=bot_token, method="sendMessage")
+    payload = {
+        "chat_id": chat_id,
+        "text": text,
+        "parse_mode": "HTML",
+        "reply_markup": json.dumps({"inline_keyboard": [[{"text": button_text, "web_app": {"url": url}}]]}),
+    }
+    resp = requests.post(api_url, data=payload, timeout=15)
+    resp.raise_for_status()
+
+
 def answer_callback_query(bot_token: str, callback_query_id: str, text: str = "") -> None:
     url = API_BASE.format(token=bot_token, method="answerCallbackQuery")
     resp = requests.post(url, data={"callback_query_id": callback_query_id, "text": text}, timeout=15)

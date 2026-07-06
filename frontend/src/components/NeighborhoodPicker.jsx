@@ -1,13 +1,4 @@
-import { useEffect, useState } from "react";
-import { getNeighborhoods } from "../api";
-
-export default function NeighborhoodPicker({ selected, onChange }) {
-  const [byCity, setByCity] = useState({});
-
-  useEffect(() => {
-    getNeighborhoods().then(setByCity).catch(() => {});
-  }, []);
-
+export default function NeighborhoodPicker({ byCity, selected, onChange }) {
   function toggle(name) {
     if (selected.includes(name)) {
       onChange(selected.filter((n) => n !== name));
@@ -31,11 +22,6 @@ export default function NeighborhoodPicker({ selected, onChange }) {
           </div>
         </div>
       ))}
-      {selected.length > 0 && (
-        <button type="button" className="neighborhood-clear" onClick={() => onChange([])}>
-          Clear all ({selected.length} selected)
-        </button>
-      )}
     </div>
   );
 }
