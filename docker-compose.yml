@@ -20,6 +20,11 @@ services:
     # Chrome's default 64MB /dev/shm is too small and causes silent crashes
     # under real memory pressure (e.g. with the other 3 services also running).
     shm_size: "1gb"
+    # Docker blocks ptrace by default; Chrome's crashpad handler needs it and
+    # hangs forever waiting for a handshake that can never complete without
+    # this, which looked identical to a random launch failure until traced.
+    cap_add:
+      - SYS_PTRACE
     volumes:
       - ./config.yaml:/app/config.yaml
       - ./listings.db:/app/listings.db
