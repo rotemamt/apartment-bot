@@ -13,6 +13,10 @@ services:
     build: .
     command: bash scripts/entrypoint_headed.sh python scripts/run_scheduler.py
     env_file: .env
+    # Our process is PID 1 in the container and doesn't reap dead child
+    # processes; when Chrome crashes, its process becomes a zombie that
+    # piles up forever without this. Docker's built-in tini init handles it.
+    init: true
     # Chrome's default 64MB /dev/shm is too small and causes silent crashes
     # under real memory pressure (e.g. with the other 3 services also running).
     shm_size: "1gb"
