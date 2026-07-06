@@ -555,6 +555,21 @@
   color: var(--color-text-muted);
 }
 
+.leaflet-tooltip.neighborhood-label {
+  background: rgba(255, 255, 255, 0.85);
+  border: none;
+  box-shadow: none;
+  padding: 1px 5px;
+  font-size: 0.7rem;
+  font-weight: 600;
+  color: var(--color-navy);
+  white-space: nowrap;
+}
+
+.leaflet-tooltip.neighborhood-label::before {
+  display: none;
+}
+
 .neighborhood-map-controls {
   display: flex;
   gap: 8px;

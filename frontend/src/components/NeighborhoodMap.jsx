@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { MapContainer, TileLayer, GeoJSON } from "react-leaflet";
 import "leaflet/dist/leaflet.css";
 import { getNeighborhoods } from "../api";
@@ -47,11 +47,21 @@ export default function NeighborhoodMap({ cities, selected, onChange }) {
 
   const center = cities.length && CENTER_BY_CITY[cities[0]] ? CENTER_BY_CITY[cities[0]] : CENTER_BY_CITY["תל אביב-יפו"];
 
+  // Leaflet's GeoJSON only calls onEachFeature once per layer, at mount -
+  // a layer that isn't remounted keeps its ORIGINAL click handler forever,
+  // which closes over whatever `selected` array existed at that moment.
+  // Clicking such a stale layer would compute "add me to the old snapshot",
+  // silently discarding every selection made since. A ref always reflects
+  // the latest value regardless of which render's closure reads it.
+  const selectedRef = useRef(selected);
+  selectedRef.current = selected;
+
   function toggle(name) {
-    if (selected.includes(name)) {
-      onChange(selected.filter((n) => n !== name));
+    const current = selectedRef.current;
+    if (current.includes(name)) {
+      onChange(current.filter((n) => n !== name));
     } else {
-      onChange([...selected, name]);
+      onChange([...current, name]);
     }
   }
 
@@ -61,7 +71,7 @@ export default function NeighborhoodMap({ cities, selected, onChange }) {
   const NAVY = "#1c2333";
 
   function styleFeature(feature) {
-    const isSelected = selected.includes(feature.properties.name);
+    const isSelected = selectedRef.current.includes(feature.properties.name);
     return {
       color: isSelected ? ACCENT : NAVY,
       weight: isSelected ? 3 : 1.5,
@@ -72,7 +82,13 @@ export default function NeighborhoodMap({ cities, selected, onChange }) {
   }
 
   function onEachFeature(feature, layer) {
-    layer.bindTooltip(feature.properties.name, { sticky: true, direction: "top" });
+    // Permanent label (not just on hover) so names show like Shushu's map.
+    layer.bindTooltip(feature.properties.name, {
+      permanent: true,
+      direction: "center",
+      className: "neighborhood-label",
+      interactive: false,
+    });
     layer.on({
       mouseover: () => layer.setStyle({ fillOpacity: 0.6, weight: 3, color: ACCENT, opacity: 1 }),
       mouseout: () => layer.setStyle(styleFeature(feature)),
@@ -115,7 +131,12 @@ export default function NeighborhoodMap({ cities, selected, onChange }) {
             />
             {mappable.map((f) => (
               <GeoJSON
-                key={f.properties.name}
+                // Re-mount (not just re-render) whenever this feature's own
+                // selection flips - react-leaflet doesn't reliably reapply
+                // style/handlers on prop changes to an already-mounted
+                // GeoJSON layer, which was silently dropping every
+                // selection except whichever one you'd last hovered.
+                key={`${f.properties.name}-${selected.includes(f.properties.name)}`}
                 data={f}
                 style={styleFeature}
                 onEachFeature={onEachFeature}

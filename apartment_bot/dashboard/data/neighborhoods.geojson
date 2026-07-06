@@ -259,7 +259,7 @@
    "type": "Feature",
    "properties": {
     "name": "קריית קריניצי",
-    "city": "גבעתיים",
+    "city": "רמת גן",
     "has_geometry": true
    },
    "geometry": {
@@ -640,7 +640,7 @@
    "type": "Feature",
    "properties": {
     "name": "שיכון ותיקים",
-    "city": "גבעתיים",
+    "city": "רמת גן",
     "has_geometry": true
    },
    "geometry": {
@@ -1552,7 +1552,7 @@
    "type": "Feature",
    "properties": {
     "name": "תל גנים",
-    "city": "גבעתיים",
+    "city": "רמת גן",
     "has_geometry": true
    },
    "geometry": {
@@ -40176,6 +40176,132 @@
      ]
     ]
    }
+  },
+  {
+   "type": "Feature",
+   "properties": {
+    "name": "שינקין",
+    "city": "גבעתיים",
+    "has_geometry": false
+   },
+   "geometry": null
+  },
+  {
+   "type": "Feature",
+   "properties": {
+    "name": "פועלי הרכבת",
+    "city": "גבעתיים",
+    "has_geometry": false
+   },
+   "geometry": null
+  },
+  {
+   "type": "Feature",
+   "properties": {
+    "name": "גבעת רמב\"ם",
+    "city": "גבעתיים",
+    "has_geometry": false
+   },
+   "geometry": null
+  },
+  {
+   "type": "Feature",
+   "properties": {
+    "name": "גבעת קוזלובסקי",
+    "city": "גבעתיים",
+    "has_geometry": false
+   },
+   "geometry": null
+  },
+  {
+   "type": "Feature",
+   "properties": {
+    "name": "קריית יוסף",
+    "city": "גבעתיים",
+    "has_geometry": false
+   },
+   "geometry": null
+  },
+  {
+   "type": "Feature",
+   "properties": {
+    "name": "ארלוזורוב",
+    "city": "גבעתיים",
+    "has_geometry": false
+   },
+   "geometry": null
+  },
+  {
+   "type": "Feature",
+   "properties": {
+    "name": "שיכון המורים",
+    "city": "גבעתיים",
+    "has_geometry": false
+   },
+   "geometry": null
+  },
+  {
+   "type": "Feature",
+   "properties": {
+    "name": "קריית בורוכוב",
+    "city": "רמת גן",
+    "has_geometry": false
+   },
+   "geometry": null
+  },
+  {
+   "type": "Feature",
+   "properties": {
+    "name": "תל בנימין",
+    "city": "רמת גן",
+    "has_geometry": false
+   },
+   "geometry": null
+  },
+  {
+   "type": "Feature",
+   "properties": {
+    "name": "תל השומר",
+    "city": "רמת גן",
+    "has_geometry": false
+   },
+   "geometry": null
+  },
+  {
+   "type": "Feature",
+   "properties": {
+    "name": "מרום נווה",
+    "city": "רמת גן",
+    "has_geometry": false
+   },
+   "geometry": null
+  },
+  {
+   "type": "Feature",
+   "properties": {
+    "name": "גני ארמונים",
+    "city": "רמת גן",
+    "has_geometry": false
+   },
+   "geometry": null
+  },
+  {
+   "type": "Feature",
+   "properties": {
+    "name": "הגפן",
+    "city": "רמת גן",
+    "has_geometry": false
+   },
+   "geometry": null
+  },
+  {
+   "type": "Feature",
+   "properties": {
+    "name": "הברושים",
+    "city": "רמת גן",
+    "has_geometry": false
+   },
+   "geometry": null
   }
  ]
 }

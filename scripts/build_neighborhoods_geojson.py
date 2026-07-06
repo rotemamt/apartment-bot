@@ -64,16 +64,30 @@ def relation_to_feature(rel: dict, ways_by_id: dict, city: str) -> dict | None:
 # explicitly; anything left over falls back to a coarse Tel Aviv bbox, and
 # names matching neither a known city nor the bbox are dropped (out of scope).
 GIVATAYIM_NAMES = {
-    "תל גנים", "כפר גנים א'", "כפר גנים ב'", "בת גנים",
-    "שיכון ותיקים", "בורוכוב", "קריית קריניצי",
+    "כפר גנים א'", "כפר גנים ב'", "בת גנים", "בורוכוב",
 }
 RAMAT_GAN_NAMES = {
     "בר אילן", "רמת חן", "נחלת גנים", "הבורסה", "יהלום",
     "חרוזים", "ראשונים", "חשמונאים", "עליות", "סיטי", "רמת יצחק",
     "רמת עמידר", "רמת אפעל", "נווה יהושע", "צנחנים", "אורות", "כפיר",
-    "רמת שקמה", "כפר אז\"ר",
+    "רמת שקמה", "כפר אז\"ר", "שיכון ותיקים", "קריית קריניצי", "תל גנים",
 }
 EXCLUDE_NAMES = {"בת ים", "אונו הצעירה", "אם המושבות החדשה", "נוה מונוסון"}
+
+# Official neighborhood lists (municipality/Wikipedia) with no matching OSM
+# polygon in our Overpass pull - included as list-only entries (has_geometry
+# False) so the picker's list view is complete even where the map can't
+# show a shape yet.
+NO_GEOMETRY_NEIGHBORHOODS = {
+    "גבעתיים": [
+        "שינקין", "פועלי הרכבת", "גבעת רמב\"ם", "גבעת קוזלובסקי",
+        "קריית יוסף", "ארלוזורוב", "שיכון המורים",
+    ],
+    "רמת גן": [
+        "קריית בורוכוב", "תל בנימין", "תל השומר", "מרום נווה",
+        "גני ארמונים", "הגפן", "הברושים",
+    ],
+}
 
 CITY_BOUNDS = {
     "תל אביב-יפו": (32.03, 34.73, 32.14, 34.83),
@@ -143,6 +157,18 @@ def main(raw_path: str) -> None:
             continue
         seen_names.add(key)
         features.append(feat)
+
+    for city, names in NO_GEOMETRY_NEIGHBORHOODS.items():
+        for name in names:
+            key = (name, city)
+            if key in seen_names:
+                continue
+            seen_names.add(key)
+            features.append({
+                "type": "Feature",
+                "properties": {"name": name, "city": city, "has_geometry": False},
+                "geometry": None,
+            })
 
     fc = {"type": "FeatureCollection", "features": features}
     OUT_PATH.parent.mkdir(parents=True, exist_ok=True)
