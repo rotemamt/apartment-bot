@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { getConfig, updateConfig } from "../api";
+import { getFilters, updateFilters } from "../api";
 import RangeField from "./RangeField";
 import NeighborhoodPicker from "./NeighborhoodPicker";
 
@@ -27,7 +27,7 @@ export default function SettingsView() {
   const [message, setMessage] = useState("");
 
   useEffect(() => {
-    getConfig().then((config) => setForm(toFormState(config.filters || {})));
+    getFilters().then((filters) => setForm(toFormState(filters || {})));
   }, []);
 
   if (!form) return <div>Loading settings...</div>;
@@ -54,7 +54,7 @@ export default function SettingsView() {
       excluded_keywords: form.excluded_keywords.split(",").map((s) => s.trim()).filter(Boolean),
     };
     try {
-      await updateConfig(payload);
+      await updateFilters(payload);
       setMessage("Saved.");
     } catch (err) {
       setMessage(`Error: ${err.message}`);

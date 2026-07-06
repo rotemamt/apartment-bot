@@ -1,3 +1,4 @@
+import json
 from datetime import datetime
 from html import escape
 
@@ -49,4 +50,34 @@ def send_listing_alert(bot_token: str, chat_id: str, listing: Listing, matched_f
 def send_text(bot_token: str, chat_id: str, text: str) -> None:
     url = API_BASE.format(token=bot_token, method="sendMessage")
     resp = requests.post(url, data={"chat_id": chat_id, "text": text, "parse_mode": "HTML"}, timeout=15)
+    resp.raise_for_status()
+
+
+def send_message_with_buttons(bot_token: str, chat_id: str, text: str, buttons: list[list[dict]]) -> int:
+    """Send a message with an inline keyboard. Returns the sent message_id
+    (needed later to edit the message once a button is tapped)."""
+    url = API_BASE.format(token=bot_token, method="sendMessage")
+    payload = {
+        "chat_id": chat_id,
+        "text": text,
+        "parse_mode": "HTML",
+        "reply_markup": json.dumps({"inline_keyboard": buttons}),
+    }
+    resp = requests.post(url, data=payload, timeout=15)
+    resp.raise_for_status()
+    return resp.json()["result"]["message_id"]
+
+
+def answer_callback_query(bot_token: str, callback_query_id: str, text: str = "") -> None:
+    url = API_BASE.format(token=bot_token, method="answerCallbackQuery")
+    resp = requests.post(url, data={"callback_query_id": callback_query_id, "text": text}, timeout=15)
+    resp.raise_for_status()
+
+
+def edit_message(bot_token: str, chat_id: str, message_id: int, text: str) -> None:
+    """Replace a message's text and drop its inline keyboard (used after
+    an admin taps Approve/Deny, so the buttons can't be tapped twice)."""
+    url = API_BASE.format(token=bot_token, method="editMessageText")
+    payload = {"chat_id": chat_id, "message_id": message_id, "text": text, "parse_mode": "HTML"}
+    resp = requests.post(url, data=payload, timeout=15)
     resp.raise_for_status()

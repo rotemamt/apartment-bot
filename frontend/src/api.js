@@ -3,13 +3,19 @@
 const API_BASE = "";
 
 async function request(path, options = {}) {
-  const resp = await fetch(`${API_BASE}${path}`, {
-    headers: { "Content-Type": "application/json" },
-    ...options,
-  });
+  const tg = window.Telegram?.WebApp;
+  const headers = { "Content-Type": "application/json", ...options.headers };
+  // Raw signed initData (not initDataUnsafe) - the server verifies this
+  // HMAC signature itself; the client never decides who it is.
+  if (tg?.initData) {
+    headers["X-Telegram-Init-Data"] = tg.initData;
+  }
+  const resp = await fetch(`${API_BASE}${path}`, { ...options, headers });
   if (!resp.ok) {
     const body = await resp.text();
-    throw new Error(`${resp.status} ${resp.statusText}: ${body}`);
+    const err = new Error(`${resp.status} ${resp.statusText}: ${body}`);
+    err.status = resp.status;
+    throw err;
   }
   return resp.json();
 }
@@ -35,16 +41,16 @@ export function getStats() {
   return request("/api/stats");
 }
 
-export function getConfig() {
-  return request("/api/config");
+export function getFilters() {
+  return request("/api/filters");
 }
 
 export function getNeighborhoods() {
   return request("/api/neighborhoods");
 }
 
-export function updateConfig(filters) {
-  return request("/api/config", {
+export function updateFilters(filters) {
+  return request("/api/filters", {
     method: "PUT",
     body: JSON.stringify(filters),
   });

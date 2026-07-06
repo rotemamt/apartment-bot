@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { getStats, getConfig } from "./api";
+import { getStats } from "./api";
 import ListingsView from "./components/ListingsView";
 import SettingsView from "./components/SettingsView";
 import "./App.css";
@@ -7,33 +7,42 @@ import "./App.css";
 const tg = window.Telegram?.WebApp;
 const runningInTelegram = Boolean(tg?.initData);
 
+// "checking" | "authorized" | "pending" | "denied"
 export default function App() {
-  const [tab, setTab] = useState(runningInTelegram ? "settings" : "listings");
+  const [tab, setTab] = useState("settings");
   const [stats, setStats] = useState(null);
-  const [authorized, setAuthorized] = useState(!runningInTelegram);
+  const [authState, setAuthState] = useState(runningInTelegram ? "checking" : "denied");
 
   useEffect(() => {
     if (tg) {
       tg.ready();
       tg.expand();
     }
-    if (runningInTelegram) {
-      getConfig()
-        .then((config) => {
-          const ownerId = String(config.telegram?.chat_id || "");
-          const userId = String(tg.initDataUnsafe?.user?.id || "");
-          setAuthorized(ownerId !== "" && ownerId === userId);
-        })
-        .catch(() => setAuthorized(false));
-    }
+    if (!runningInTelegram) return;
+    getStats()
+      .then((s) => {
+        setStats(s);
+        setAuthState("authorized");
+      })
+      .catch((err) => {
+        setAuthState(err.status === 403 ? "pending" : "denied");
+      });
   }, []);
 
   useEffect(() => {
-    getStats().then(setStats).catch(() => {});
-  }, [tab]);
+    if (authState === "authorized") {
+      getStats().then(setStats).catch(() => {});
+    }
+  }, [tab, authState]);
 
-  if (!authorized) {
-    return <div className="app"><p>Not authorized.</p></div>;
+  if (authState === "checking") {
+    return <div className="app"><p>Loading...</p></div>;
+  }
+  if (authState === "pending") {
+    return <div className="app"><p>הבקשה שלך ממתינה לאישור מנהל. שלח /start לבוט אם עוד לא עשית זאת.</p></div>;
+  }
+  if (authState === "denied") {
+    return <div className="app"><p>Not authorized. Open this from the Telegram bot.</p></div>;
   }
 
   return (
