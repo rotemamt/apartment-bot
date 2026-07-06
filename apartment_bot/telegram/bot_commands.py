@@ -28,7 +28,7 @@ HELP_TEXT = (
     "/pause - השהיית התראות\n"
     "/resume - חידוש התראות\n"
     "/filters - הצגת הגדרות הסינון הנוכחיות\n"
-    "/setprice <מינימום> <מקסימום> - עדכון טווח מחיר"
+    "/setprice מינימום מקסימום - עדכון טווח מחיר (למשל: /setprice 4000 8000)"
 )
 
 
@@ -106,7 +106,13 @@ def main() -> None:
             text = msg.get("text")
             chat_id = msg.get("chat", {}).get("id")
             if text and chat_id:
-                handle_message(chat_id, text, authorized_chat_id)
+                try:
+                    handle_message(chat_id, text, authorized_chat_id)
+                except Exception as e:
+                    # A bad message must never crash the whole listener - a crash
+                    # here means the offset update above never reaches Telegram,
+                    # so the same message gets redelivered forever on restart.
+                    print("error handling message, skipping:", e)
 
 
 if __name__ == "__main__":
