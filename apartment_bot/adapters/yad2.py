@@ -121,7 +121,10 @@ class Yad2Adapter(SourceAdapter):
         # alongside docker-compose.yml's shm_size bump.
         browser = await uc.start(
             headless=False, user_data_dir=PROFILE_DIR, sandbox=False,
-            browser_args=["--disable-dev-shm-usage"],
+            # --disable-gpu: this VM has no real GPU; a manual launch without
+            # it also succeeded, so this is a guess based on what differs
+            # from that working manual command, not a confirmed root cause.
+            browser_args=["--disable-dev-shm-usage", "--disable-gpu"],
         )
         try:
             listings: dict[str, Listing] = {}
