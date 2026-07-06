@@ -71,7 +71,14 @@ def connect(db_path: str) -> sqlite3.Connection:
     Path(db_path).parent.mkdir(parents=True, exist_ok=True)
     conn = sqlite3.connect(db_path)
     conn.row_factory = sqlite3.Row
-    conn.execute("PRAGMA journal_mode=WAL")
+    # NOT WAL: WAL mode needs a shared -wal/-shm file kept in sync between
+    # every process touching the db, but docker-compose bind-mounts only the
+    # single listings.db file (not its directory) into each service - each
+    # container ends up with its own private, uncoordinated -wal/-shm pair,
+    # so containers silently stop seeing each other's writes. The default
+    # rollback journal only needs the one shared file, which the bind mount
+    # already provides consistently across containers.
+    conn.execute("PRAGMA journal_mode=DELETE")
     conn.executescript(SCHEMA)
     for column, definition in MIGRATIONS:
         try:
