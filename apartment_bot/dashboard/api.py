@@ -80,6 +80,7 @@ def get_current_user(x_telegram_init_data: str = Header(...)):
 
     conn = db.connect(str(DB_PATH))
     user = db.get_user_by_chat_id(conn, str(tg_user["id"]))
+    print(f"[DEBUG auth] tg_user id={tg_user['id']!r} found_user={dict(user) if user else None}")
     if user is None or user["status"] != "approved":
         raise HTTPException(status_code=403, detail="not authorized")
     return user
