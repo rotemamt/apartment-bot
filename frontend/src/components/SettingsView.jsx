@@ -4,6 +4,8 @@ import CityStep from "./wizard/steps/CityStep";
 import NeighborhoodMap from "./NeighborhoodMap";
 import PriceStep from "./wizard/steps/PriceStep";
 import RoomsFloorStep from "./wizard/steps/RoomsFloorStep";
+import PropertyTypeStep from "./wizard/steps/PropertyTypeStep";
+import ExtraFeaturesStep from "./wizard/steps/ExtraFeaturesStep";
 import SizeKeywordsStep from "./wizard/steps/SizeKeywordsStep";
 
 const DEFAULT_FILTERS = {
@@ -13,6 +15,8 @@ const DEFAULT_FILTERS = {
   min_sqm: null,
   cities: [], neighborhoods: [],
   required_keywords: [], excluded_keywords: [],
+  property_type: null, safe_room: null,
+  preferred_keywords: [],
 };
 
 const MAP_SUPPORTED_CITIES = ["תל אביב-יפו", "רמת גן", "גבעתיים"];
@@ -74,6 +78,14 @@ export default function SettingsView() {
 
       <section className="settings-section">
         <RoomsFloorStep filters={filters} patch={patch} />
+      </section>
+
+      <section className="settings-section">
+        <PropertyTypeStep filters={filters} patch={patch} />
+      </section>
+
+      <section className="settings-section">
+        <ExtraFeaturesStep filters={filters} patch={patch} />
       </section>
 
       <section className="settings-section">

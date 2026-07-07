@@ -8,6 +8,14 @@ from apartment_bot.adapters.base import Listing
 
 API_BASE = "https://api.telegram.org/bot{token}/{method}"
 SOURCE_LABELS = {"yad2": "Yad2", "telegram": "Telegram"}
+PREFERRED_FEATURE_LABELS = {
+    "elevator": "מעלית",
+    "renovated": "משופצת",
+    "pets_allowed": "חיות מחמד מותרות",
+    "parking": "חניה",
+    "no_brokerage_fee": "ללא דמי תיווך",
+    "balcony": "מרפסת",
+}
 
 
 def _format_posted_date(posted_date: str | None) -> str | None:
@@ -19,7 +27,9 @@ def _format_posted_date(posted_date: str | None) -> str | None:
         return posted_date
 
 
-def format_caption(listing: Listing, matched_features: list[str]) -> str:
+def format_caption(
+    listing: Listing, matched_features: list[str], preferred_features: list[str] | None = None
+) -> str:
     rooms = f"{listing.rooms:g}" if listing.rooms is not None else "?"
     lines = [
         f"🏠 <b>{listing.price:,} ₪</b> | {rooms} חדרים",
@@ -31,12 +41,21 @@ def format_caption(listing: Listing, matched_features: list[str]) -> str:
         lines.append(f"📅 פורסם: {posted}")
     if matched_features:
         lines.append("✅ " + ", ".join(escape(f) for f in matched_features))
+    if preferred_features:
+        labels = [PREFERRED_FEATURE_LABELS.get(f, f) for f in preferred_features]
+        lines.append("🌟 " + ", ".join(escape(l) for l in labels))
     lines.append(f'<a href="{escape(listing.url)}">לצפייה במודעה</a>')
     return "\n".join(lines)
 
 
-def send_listing_alert(bot_token: str, chat_id: str, listing: Listing, matched_features: list[str]) -> None:
-    caption = format_caption(listing, matched_features)
+def send_listing_alert(
+    bot_token: str,
+    chat_id: str,
+    listing: Listing,
+    matched_features: list[str],
+    preferred_features: list[str] | None = None,
+) -> None:
+    caption = format_caption(listing, matched_features, preferred_features)
     if listing.photo_url:
         url = API_BASE.format(token=bot_token, method="sendPhoto")
         payload = {"chat_id": chat_id, "photo": listing.photo_url, "caption": caption, "parse_mode": "HTML"}

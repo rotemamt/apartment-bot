@@ -25,9 +25,9 @@ def format_filters(f: dict) -> str:
 def notify_admins_of_pending_request(bot_token: str, conn, user_id: int) -> None:
     user = db.get_user_by_id(conn, user_id)
     filters = json.loads(user["filters"])
+    name = filters.get("display_name") or user["telegram_username"] or user["telegram_chat_id"]
     text = (
-        f"בקשת הצטרפות חדשה מ-{user['telegram_username'] or user['telegram_chat_id']}"
-        f" (chat_id {user['telegram_chat_id']}):\n\n{format_filters(filters)}"
+        f"בקשת הצטרפות חדשה מ-{name} (chat_id {user['telegram_chat_id']}):\n\n{format_filters(filters)}"
     )
     buttons = [[
         {"text": "✅ אשר", "callback_data": f"approve:{user_id}"},

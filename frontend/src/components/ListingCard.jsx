@@ -1,5 +1,13 @@
 const SOURCE_LABELS = { yad2: "Yad2", telegram: "Telegram" };
 const STATUS_OPTIONS = ["new", "seen", "interested", "rejected"];
+const PREFERRED_FEATURE_LABELS = {
+  elevator: "מעלית",
+  renovated: "משופצת",
+  pets_allowed: "חיות מחמד מותרות",
+  parking: "חניה",
+  no_brokerage_fee: "ללא דמי תיווך",
+  balcony: "מרפסת",
+};
 
 function formatDate(iso) {
   if (!iso) return null;
@@ -34,6 +42,15 @@ export default function ListingCard({ listing, onStatusChange }) {
         {listing.address && <div className="listing-address">{listing.address}</div>}
         {listing.matched_features && listing.matched_features.length > 0 && (
           <div className="listing-features">✅ {listing.matched_features.join(", ")}</div>
+        )}
+        {listing.preferred_features && listing.preferred_features.length > 0 && (
+          <div className="listing-preferred-features">
+            {listing.preferred_features.map((f) => (
+              <span key={f} className="preferred-feature-pill">
+                {PREFERRED_FEATURE_LABELS[f] || f}
+              </span>
+            ))}
+          </div>
         )}
         <a className="listing-link" href={listing.url} target="_blank" rel="noreferrer">
           View listing ↗

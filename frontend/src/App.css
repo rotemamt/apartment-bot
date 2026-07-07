@@ -150,6 +150,21 @@
   color: #15803d;
 }
 
+.listing-preferred-features {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.preferred-feature-pill {
+  font-size: 0.72rem;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: var(--color-accent-soft);
+  color: var(--color-accent-soft-text);
+  border: 1px solid var(--color-accent);
+}
+
 .listing-link {
   font-size: 0.85rem;
   color: var(--color-accent);
@@ -405,6 +420,11 @@
   font-weight: 600;
 }
 
+.wizard-owl {
+  font-size: 1.6rem;
+  line-height: 1;
+}
+
 .wizard-dots {
   display: flex;
   gap: 6px;
@@ -547,6 +567,17 @@
   border-radius: 8px;
 }
 
+/* --- name step --- */
+
+.name-step-input {
+  width: 100%;
+  padding: 12px 14px;
+  border: 1px solid var(--color-border);
+  border-radius: 10px;
+  font-size: 1rem;
+  box-sizing: border-box;
+}
+
 /* --- neighborhood map --- */
 
 .neighborhood-map-loading {
@@ -657,4 +688,51 @@
   border-radius: 8px;
   background: var(--color-surface);
   color: var(--color-text);
+}
+
+/* --- feature card grid --- */
+
+.feature-card-grid {
+  display: grid;
+  grid-template-columns: repeat(var(--fcg-columns, 2), 1fr);
+  gap: 8px;
+  margin-bottom: 16px;
+}
+
+.feature-card {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: 12px 10px;
+  border-radius: 12px;
+  border: 1px solid var(--color-border);
+  background: var(--color-surface);
+  color: var(--color-text);
+  font-size: 0.88rem;
+  cursor: pointer;
+  text-align: center;
+}
+
+.feature-card:hover {
+  border-color: var(--color-accent);
+}
+
+.feature-card.selected {
+  background: var(--color-accent);
+  border-color: var(--color-accent);
+  color: #fff;
+}
+
+.feature-card-icon {
+  font-size: 1.3rem;
+  line-height: 1;
+}
+
+.feature-card-check {
+  position: absolute;
+  top: 6px;
+  inset-inline-end: 8px;
+  font-size: 0.8rem;
 }

@@ -2,6 +2,7 @@ export default function WizardShell({ stepIndex, totalSteps, title, subtitle, on
   return (
     <div className="wizard-shell">
       <div className="wizard-header">
+        <span className="wizard-owl" role="img" aria-label="ינשוף">🦉</span>
         <span className="wizard-step-counter">שלב {stepIndex + 1} מתוך {totalSteps}</span>
         <div className="wizard-dots">
           {Array.from({ length: totalSteps }).map((_, i) => (

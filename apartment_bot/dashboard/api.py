@@ -88,6 +88,10 @@ def row_to_dict(row) -> dict:
         d["matched_features"] = json.loads(d.get("matched_features") or "[]")
     except (TypeError, ValueError):
         d["matched_features"] = []
+    try:
+        d["preferred_features"] = json.loads(d.get("preferred_features") or "[]")
+    except (TypeError, ValueError):
+        d["preferred_features"] = []
     return d
 
 
@@ -97,6 +101,7 @@ class StatusUpdate(BaseModel):
 
 class FiltersUpdate(BaseModel):
     price_min: Optional[int] = None
+    display_name: Optional[str] = None
     price_max: Optional[int] = None
     rooms_min: Optional[float] = None
     rooms_max: Optional[float] = None
@@ -107,6 +112,9 @@ class FiltersUpdate(BaseModel):
     neighborhoods: Optional[list[str]] = None
     required_keywords: Optional[list[str]] = None
     excluded_keywords: Optional[list[str]] = None
+    property_type: Optional[str] = None
+    safe_room: Optional[str] = None
+    preferred_keywords: Optional[list[str]] = None
 
 
 @app.get("/api/listings")

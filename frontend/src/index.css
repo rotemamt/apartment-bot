@@ -1,15 +1,17 @@
 :root {
   font: 16px/1.5 system-ui, "Segoe UI", Roboto, sans-serif;
   color: #1c2333;
-  background: #f6f1e9;
+  background: #F0EEE9;
 
-  --color-bg: #f6f1e9;
+  --color-bg: #F0EEE9;
   --color-surface: #ffffff;
   --color-text: #1c2333;
   --color-text-muted: #6b6456;
   --color-navy: #1c2333;
-  --color-accent: #d9622b;
-  --color-accent-hover: #c2531f;
+  --color-accent: #005240;
+  --color-accent-hover: #003d2f;
+  --color-accent-soft: #e3ede9;
+  --color-accent-soft-text: #005240;
   --color-border: #e6ddcf;
 }
 

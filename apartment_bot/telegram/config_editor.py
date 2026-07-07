@@ -12,6 +12,7 @@ EDITABLE_FILTER_KEYS = {
     "price_min", "price_max", "rooms_min", "rooms_max",
     "floor_min", "floor_max", "min_sqm", "cities", "neighborhoods",
     "required_keywords", "excluded_keywords",
+    "property_type", "safe_room", "preferred_keywords",
 }
 
 

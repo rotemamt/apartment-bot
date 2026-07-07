@@ -1,5 +1,5 @@
 import re
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 
 import yaml
 
@@ -17,12 +17,36 @@ _DASH_RE = re.compile(r"[-־–—]")
 _QUOTE_RE = re.compile(r'["\'׳״]')
 _WHITESPACE_RE = re.compile(r"\s+")
 
+# Curated synonym lists for the wizard's single-select property/safe-room
+# cards and the multi-select "nice to have" feature chips - keys are the
+# canonical values the frontend sends, values are alternate spellings to
+# search for in the listing's text blob.
+PROPERTY_TYPE_SYNONYMS = {
+    "דירה שלמה": ["דירה שלמה", "כל הדירה", "דירה מלאה"],
+    "דירה לשותפים": ["לשותפים", "דרוש שותף", "דרושה שותפה", "roommate"],
+    "חדר בדירת שותפים": ["חדר בדירת שותפים", "חדר בדירה משותפת"],
+    "סאבלט": ["סאבלט", "sublet"],
+}
+SAFE_ROOM_SYNONYMS = {
+    "מקלט": ["מקלט", "shelter"],
+    'ממ"ד': ['ממ"ד', "מרחב מוגן", "mamad", "safe room"],
+}
+PREFERRED_FEATURE_SYNONYMS = {
+    "elevator": ["מעלית", "elevator"],
+    "renovated": ["משופצת", "משופץ", "renovated"],
+    "pets_allowed": ["חיות מחמד", "מותר בעלי חיים", "pet friendly"],
+    "parking": ["חניה", "חנייה", "parking"],
+    "no_brokerage_fee": ["ללא תיווך", "בלי תיווך", "ללא דמי תיווך", "no brokerage"],
+    "balcony": ["מרפסת", "balcony"],
+}
+
 
 @dataclass
 class MatchResult:
     matched: bool
     matched_features: list[str]
     reason: str = ""
+    preferred_features: list[str] = field(default_factory=list)
 
 
 def load_config(path: str) -> dict:
@@ -88,6 +112,18 @@ def match_listing(listing: Listing, config: dict) -> MatchResult:
         if _normalize(kw) in blob:
             return MatchResult(False, [], f"excluded keyword matched: {kw}")
 
+    property_type = f.get("property_type")
+    if property_type:
+        synonyms = PROPERTY_TYPE_SYNONYMS.get(property_type, [property_type])
+        if not any(_normalize(s) in blob for s in synonyms):
+            return MatchResult(False, [], f"property_type mismatch: {property_type}")
+
+    safe_room = f.get("safe_room")
+    if safe_room:
+        synonyms = SAFE_ROOM_SYNONYMS.get(safe_room, [safe_room])
+        if not any(_normalize(s) in blob for s in synonyms):
+            return MatchResult(False, [], f"safe_room mismatch: {safe_room}")
+
     # Each entry is a required feature; write it as "alt1/alt2/alt3" to accept
     # any spelling/synonym for that one feature (e.g. mamad has several common
     # spellings) - entries are ANDed together, alternatives within an entry
@@ -101,4 +137,13 @@ def match_listing(listing: Listing, config: dict) -> MatchResult:
             return MatchResult(False, [], f"missing required keyword (any of): {entry}")
         matched_features.append(found)
 
-    return MatchResult(True, matched_features, "matched")
+    # Nice-to-have features never disqualify a listing - just record which
+    # ones were actually detected so the UI/alert can flag them.
+    preferred_keywords = f.get("preferred_keywords") or []
+    preferred_features = []
+    for key in preferred_keywords:
+        synonyms = PREFERRED_FEATURE_SYNONYMS.get(key, [key])
+        if any(_normalize(s) in blob for s in synonyms):
+            preferred_features.append(key)
+
+    return MatchResult(True, matched_features, "matched", preferred_features)

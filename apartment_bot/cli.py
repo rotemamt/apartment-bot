@@ -41,11 +41,14 @@ def process_listings(listings: list[Listing], conn, users: list, bot_token: str 
             user_filters = {"filters": json.loads(user["filters"])}
             result = match_listing(listing, user_filters)
             is_new_for_user = db.upsert_user_listing(
-                conn, user["id"], listing_id, result.matched, result.matched_features
+                conn, user["id"], listing_id, result.matched, result.matched_features, result.preferred_features
             )
             if is_new_for_user and result.matched and bot_token:
                 if not db.get_user_listing_alert_sent(conn, user["id"], listing_id):
-                    send_listing_alert(bot_token, user["telegram_chat_id"], listing, result.matched_features)
+                    send_listing_alert(
+                        bot_token, user["telegram_chat_id"], listing,
+                        result.matched_features, result.preferred_features,
+                    )
                     db.mark_alert_sent(conn, user["id"], listing_id)
                     new_matches += 1
     return new_matches

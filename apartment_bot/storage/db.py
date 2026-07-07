@@ -47,6 +47,7 @@ CREATE TABLE IF NOT EXISTS user_listings (
     listing_id INTEGER NOT NULL REFERENCES listings(id),
     matched INTEGER NOT NULL DEFAULT 0,
     matched_features TEXT,
+    preferred_features TEXT,
     status TEXT NOT NULL DEFAULT 'new' CHECK(status IN ('new','seen','interested','rejected')),
     alert_sent INTEGER NOT NULL DEFAULT 0,
     first_seen_at TEXT NOT NULL,
@@ -59,9 +60,10 @@ CREATE INDEX IF NOT EXISTS idx_user_listings_user ON user_listings(user_id);
 # (column, definition) pairs added after the initial release - kept as idempotent
 # ALTER TABLEs so existing databases upgrade in place without losing data.
 MIGRATIONS = [
-    ("matched", "INTEGER NOT NULL DEFAULT 0"),
-    ("latitude", "REAL"),
-    ("longitude", "REAL"),
+    ("listings", "matched", "INTEGER NOT NULL DEFAULT 0"),
+    ("listings", "latitude", "REAL"),
+    ("listings", "longitude", "REAL"),
+    ("user_listings", "preferred_features", "TEXT"),
 ]
 
 SORT_COLUMNS = {"price", "rooms", "first_seen_at", "posted_date"}
@@ -80,9 +82,9 @@ def connect(db_path: str) -> sqlite3.Connection:
     # already provides consistently across containers.
     conn.execute("PRAGMA journal_mode=DELETE")
     conn.executescript(SCHEMA)
-    for column, definition in MIGRATIONS:
+    for table, column, definition in MIGRATIONS:
         try:
-            conn.execute(f"ALTER TABLE listings ADD COLUMN {column} {definition}")
+            conn.execute(f"ALTER TABLE {table} ADD COLUMN {column} {definition}")
         except sqlite3.OperationalError:
             pass  # column already exists
     conn.commit()
@@ -276,7 +278,12 @@ def submit_onboarding(conn: sqlite3.Connection, user_id: int, updates: dict) -> 
 # --- user_listings -------------------------------------------------------
 
 def upsert_user_listing(
-    conn: sqlite3.Connection, user_id: int, listing_id: int, matched: bool, matched_features: list[str] | None
+    conn: sqlite3.Connection,
+    user_id: int,
+    listing_id: int,
+    matched: bool,
+    matched_features: list[str] | None,
+    preferred_features: list[str] | None = None,
 ) -> bool:
     """Record how a listing evaluates for a specific user. Returns True if this
     is the first time this user has seen this listing."""
@@ -287,18 +294,20 @@ def upsert_user_listing(
 
     if row:
         conn.execute(
-            """UPDATE user_listings SET matched=?, matched_features=?, last_seen_at=?
+            """UPDATE user_listings SET matched=?, matched_features=?, preferred_features=?, last_seen_at=?
                WHERE user_id=? AND listing_id=?""",
-            (int(matched), json.dumps(matched_features or []), now, user_id, listing_id),
+            (int(matched), json.dumps(matched_features or []), json.dumps(preferred_features or []),
+             now, user_id, listing_id),
         )
         conn.commit()
         return False
 
     conn.execute(
         """INSERT INTO user_listings
-           (user_id, listing_id, matched, matched_features, status, alert_sent, first_seen_at, last_seen_at)
-           VALUES (?, ?, ?, ?, 'new', 0, ?, ?)""",
-        (user_id, listing_id, int(matched), json.dumps(matched_features or []), now, now),
+           (user_id, listing_id, matched, matched_features, preferred_features, status, alert_sent, first_seen_at, last_seen_at)
+           VALUES (?, ?, ?, ?, ?, 'new', 0, ?, ?)""",
+        (user_id, listing_id, int(matched), json.dumps(matched_features or []),
+         json.dumps(preferred_features or []), now, now),
     )
     conn.commit()
     return True
@@ -350,6 +359,7 @@ _LISTING_COLUMNS_SQL = (
 )
 _USER_LISTING_COLUMNS_SQL = (
     "ul.status AS status, ul.matched AS matched, ul.matched_features AS matched_features, "
+    "ul.preferred_features AS preferred_features, "
     "ul.first_seen_at AS first_seen_at, ul.last_seen_at AS last_seen_at"
 )
 
