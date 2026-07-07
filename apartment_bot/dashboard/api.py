@@ -113,7 +113,7 @@ class FiltersUpdate(BaseModel):
     required_keywords: Optional[list[str]] = None
     excluded_keywords: Optional[list[str]] = None
     property_type: Optional[str] = None
-    safe_room: Optional[str] = None
+    safe_room: Optional[list[str]] = None
     preferred_keywords: Optional[list[str]] = None
 
 

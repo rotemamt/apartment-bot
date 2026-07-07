@@ -15,7 +15,7 @@ const DEFAULT_FILTERS = {
   min_sqm: null,
   cities: [], neighborhoods: [],
   required_keywords: [], excluded_keywords: [],
-  property_type: null, safe_room: null,
+  property_type: null, safe_room: [],
   preferred_keywords: [],
 };
 
@@ -24,15 +24,22 @@ const MAP_SUPPORTED_CITIES = ["תל אביב-יפו", "רמת גן", "גבעתי
 export default function SettingsView() {
   const [filters, setFilters] = useState(null);
   const [saving, setSaving] = useState(false);
+  const [saved, setSaved] = useState(false);
   const [message, setMessage] = useState("");
 
   useEffect(() => {
-    getFilters().then((f) => setFilters({ ...DEFAULT_FILTERS, ...(f || {}) }));
+    getFilters().then((f) => {
+      const merged = { ...DEFAULT_FILTERS, ...(f || {}) };
+      // older saved filters may have safe_room as a single string - normalize to an array
+      if (merged.safe_room && !Array.isArray(merged.safe_room)) merged.safe_room = [merged.safe_room];
+      setFilters(merged);
+    });
   }, []);
 
   if (!filters) return <div>טוען הגדרות...</div>;
 
   function patch(partial) {
+    setSaved(false);
     setFilters((prev) => ({ ...prev, ...partial }));
   }
 
@@ -42,7 +49,7 @@ export default function SettingsView() {
     setMessage("");
     try {
       await updateFilters(filters);
-      setMessage("נשמר בהצלחה.");
+      setSaved(true);
     } catch (err) {
       setMessage(`שגיאה: ${err.message}`);
     } finally {
@@ -93,7 +100,7 @@ export default function SettingsView() {
       </section>
 
       <button type="submit" className="settings-save-btn" disabled={saving}>
-        {saving ? "שומר..." : "שמירת הגדרות"}
+        {saving ? "שומר..." : saved ? "נשמר בהצלחה" : "שמירת הגדרות"}
       </button>
       {message && <div className="save-message">{message}</div>}
     </form>

@@ -29,7 +29,8 @@ PROPERTY_TYPE_SYNONYMS = {
 }
 SAFE_ROOM_SYNONYMS = {
     "מקלט": ["מקלט", "shelter"],
-    'ממ"ד': ['ממ"ד', "מרחב מוגן", "mamad", "safe room"],
+    'ממ"ד': ['ממ"ד', "מרחב מוגן דירתי", "mamad", "safe room"],
+    'ממ"ק': ['ממ"ק', "מרחב מוגן קומתי", "mamak"],
 }
 PREFERRED_FEATURE_SYNONYMS = {
     "elevator": ["מעלית", "elevator"],
@@ -118,10 +119,12 @@ def match_listing(listing: Listing, config: dict) -> MatchResult:
         if not any(_normalize(s) in blob for s in synonyms):
             return MatchResult(False, [], f"property_type mismatch: {property_type}")
 
-    safe_room = f.get("safe_room")
+    safe_room = f.get("safe_room") or []
+    if isinstance(safe_room, str):  # older saved filters may have this as a single string
+        safe_room = [safe_room]
     if safe_room:
-        synonyms = SAFE_ROOM_SYNONYMS.get(safe_room, [safe_room])
-        if not any(_normalize(s) in blob for s in synonyms):
+        all_synonyms = [s for opt in safe_room for s in SAFE_ROOM_SYNONYMS.get(opt, [opt])]
+        if not any(_normalize(s) in blob for s in all_synonyms):
             return MatchResult(False, [], f"safe_room mismatch: {safe_room}")
 
     # Each entry is a required feature; write it as "alt1/alt2/alt3" to accept

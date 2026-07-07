@@ -69,7 +69,7 @@ export default function App() {
   return (
     <div className="app">
       <header className="app-header">
-        <h1>🏠 Apartment Bot</h1>
+        <h1>🦉 Apartment Bot</h1>
         {stats && (
           <div className="stats">
             <span>{stats.total} tracked</span>

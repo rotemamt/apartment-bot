@@ -18,7 +18,7 @@ const DEFAULT_FILTERS = {
   min_sqm: null,
   cities: [], neighborhoods: [],
   required_keywords: [], excluded_keywords: [],
-  property_type: null, safe_room: null,
+  property_type: null, safe_room: [],
   preferred_keywords: [],
 };
 
@@ -75,7 +75,10 @@ const STEPS = [
 ];
 
 export default function OnboardingWizard({ initialFilters, onSubmitted }) {
-  const [filters, setFilters] = useState({ ...DEFAULT_FILTERS, ...(initialFilters || {}) });
+  const merged = { ...DEFAULT_FILTERS, ...(initialFilters || {}) };
+  // older saved filters may have safe_room as a single string - normalize to an array
+  if (merged.safe_room && !Array.isArray(merged.safe_room)) merged.safe_room = [merged.safe_room];
+  const [filters, setFilters] = useState(merged);
   const [stepIndex, setStepIndex] = useState(0);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
