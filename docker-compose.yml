@@ -8,6 +8,11 @@ services:
     volumes:
       - ./config.yaml:/app/config.yaml
       - ./listings.db:/app/listings.db
+    # Caps each service's own memory so a runaway process gets killed (and
+    # auto-restarted, see `restart:` below) instead of starving the whole
+    # host's memory until SSH/HTTPS stop responding - which is what actually
+    # happened once when the scheduler's Chrome process hung indefinitely.
+    mem_limit: "512m"
     restart: unless-stopped
 
   scheduler:
@@ -32,6 +37,8 @@ services:
       - ./telethon_session.session:/app/telethon_session.session
       - yad2_profile:/app/.yad2_browser_profile
       - ./bot_state.json:/app/bot_state.json
+    # Highest of the four - this is the one that actually runs Chrome.
+    mem_limit: "2g"
     restart: unless-stopped
 
   bot:
@@ -42,6 +49,7 @@ services:
       - ./config.yaml:/app/config.yaml
       - ./listings.db:/app/listings.db
       - ./bot_state.json:/app/bot_state.json
+    mem_limit: "256m"
     restart: unless-stopped
 
   frontend:
@@ -54,6 +62,7 @@ services:
       - ./certbot-webroot:/var/www/certbot
     depends_on:
       - api
+    mem_limit: "128m"
     restart: unless-stopped
 
 volumes:

@@ -17,6 +17,16 @@ NEXT_DATA_RE = re.compile(r'<script id="__NEXT_DATA__" type="application/json">(
 PROFILE_DIR = str(Path(__file__).resolve().parent.parent.parent / ".yad2_browser_profile")
 FEED_BUCKETS = ("private", "agency", "platinum", "booster")
 
+# Ceiling for one entire scan (devtools connect + all page/detail fetches).
+# Individual steps (_wait_for_devtools, _wait_for_next_data) already have
+# their own timeouts, but nothing previously bounded the call as a whole -
+# a single stuck browser.get() (network stall, renderer deadlock) could hang
+# the scheduler forever with no error, no restart, and no log output, slowly
+# starving the whole host of memory until it stopped responding entirely.
+# 5 minutes is generous headroom over normal runs (a full cycle with 25
+# detail-page fetches typically finishes in well under a minute).
+SCAN_TIMEOUT_SECONDS = 300
+
 CHROME_DEBUG_PORT = 9222
 CHROME_LAUNCH_FLAGS = [
     "--remote-debugging-host=127.0.0.1",
@@ -139,7 +149,9 @@ class Yad2Adapter(SourceAdapter):
         self.detail_fetch_limit = detail_fetch_limit
 
     def fetch_listings(self, known_urls: set[str] | None = None) -> list[Listing]:
-        return uc.loop().run_until_complete(self._fetch_listings_async(known_urls or set()))
+        return uc.loop().run_until_complete(
+            asyncio.wait_for(self._fetch_listings_async(known_urls or set()), timeout=SCAN_TIMEOUT_SECONDS)
+        )
 
     async def _wait_for_next_data(self, page, timeout: int = 25) -> dict:
         elapsed = 0
