@@ -9,6 +9,7 @@ _yaml = YAML()
 _yaml.preserve_quotes = True
 
 EDITABLE_FILTER_KEYS = {
+    "display_name",
     "price_min", "price_max", "rooms_min", "rooms_max",
     "floor_min", "floor_max", "min_sqm", "cities", "neighborhoods",
     "required_keywords", "excluded_keywords",
